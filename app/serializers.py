@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
         user = Customuser.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-          
-            
+      
+                  
         )
         return user
