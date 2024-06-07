@@ -12,6 +12,9 @@ import random
 from rest_framework import status
 from django.core.mail import send_mail
 import random
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
 class Client(viewsets.ModelViewSet):
     queryset = Customuser.objects.all()
     serializer_class = UserSerializer
@@ -29,9 +32,18 @@ class Client(viewsets.ModelViewSet):
         )
 
     
-# from rest_framework import generics
-# from .serializers import UserSerializer
 
-# class RegisterView(generics.CreateAPIView):
-#     serializer_class = UserSerializer
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
 
+        user = Customuser.objects.get(username=username)
+        if user.check_password(password):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+               'sucess'
+            })
+
+        else:
+            return Response({'error': 'Invalid credentials'}, status=400)
