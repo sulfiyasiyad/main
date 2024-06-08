@@ -15,6 +15,10 @@ import random
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.decorators import api_view
+from .models import Product
+from .serializers import ProductSerializer
+
 class Client(viewsets.ModelViewSet):
     queryset = Customuser.objects.all()
     serializer_class = UserSerializer
@@ -47,3 +51,11 @@ class LoginView(APIView):
 
         else:
             return Response({'error': 'Invalid credentials'}, status=400)
+@api_view(['POST'])
+def add_product(request):
+    if request.method == 'POST':
+        serializer = ProductSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
