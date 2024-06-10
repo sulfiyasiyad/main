@@ -1,21 +1,26 @@
 from .models import Customuser
+from .models import Product
+
 from rest_framework import serializers
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customuser
-        fields = ('username', 'email')
-
+        fields = ['username', 'first_name', 'last_name', 'email', 'pancard', 'user_type']
     def create(self, validated_data):
         user = Customuser.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            
-      
-                  
+    
+            first_name=validated_data['first_name'],
+            last_name=validated_data['last_name'],
+            pancard=validated_data['pancard'],
+            user_type=validated_data['user_type'],
         )
         return user
+        
 
+  
 
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:

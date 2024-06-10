@@ -18,10 +18,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
 from .models import Product
 from .serializers import ProductSerializer
+from django.db.utils import IntegrityError
 
 class Client(viewsets.ModelViewSet):
     queryset = Customuser.objects.all()
     serializer_class = UserSerializer
+
     def perform_create(self, serializer):
         user = serializer.save()
         random_password = ''.join(random.choices(string.digits, k=6))
@@ -35,8 +37,8 @@ class Client(viewsets.ModelViewSet):
             fail_silently=False,
         )
 
-    
 
+    
 class LoginView(APIView):
     def post(self, request):
         username = request.data.get('username')
@@ -59,3 +61,4 @@ def add_product(request):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+

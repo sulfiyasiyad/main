@@ -91,7 +91,7 @@ WSGI_APPLICATION = 'wsystem.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'rwarehouse',
+        'NAME': 'demo',
         'USER':'root',
         'PASSWORD':'',
         'HOST':'localhost',
