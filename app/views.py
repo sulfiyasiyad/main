@@ -57,8 +57,13 @@ class LoginView(APIView):
 def add_product(request):
     if request.method == 'POST':
         serializer = ProductSerializer(data=request.data)
+        print(serializer)
         if serializer.is_valid():
             serializer.save()
+          
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class ProductViewSet(viewsets.ModelViewSet):
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer

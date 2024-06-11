@@ -25,5 +25,17 @@ class UserSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
-        fields = ['id', 'name', 'price', 'description']
+        fields = '__all__'
+        # fields = ['id', 'name', 'price', 'description','specification','quantity']
+    # def create(self, validated_data):
+    #     pro= Product.objects.create_pro(
+    #         name=validated_data['name'],
+    #         price=validated_data['price'],
+    
+    #         description=validated_data['description'],
+    #         specification=validated_data['specification'],
+    #         quantity=validated_data['quantity'],
+            
+    #     )
+    #     return pro
 
