@@ -18,6 +18,10 @@ class UserSerializer(serializers.ModelSerializer):
             user_type=validated_data['user_type'],
         )
         return user
+    def validate_email(self, value):
+        if Customuser.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Email already exists")
+        return value
         
 
   
