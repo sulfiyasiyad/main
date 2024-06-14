@@ -17,25 +17,45 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
 from .models import Product
+from .models import Usermember
 from .serializers import ProductSerializer
 from django.db.utils import IntegrityError
+from .serializers import  UsermemberSerializer
 
-class Client(viewsets.ModelViewSet):
-    queryset = Customuser.objects.all()
-    serializer_class = UserSerializer
+# class Client(viewsets.ModelViewSet):
+#     queryset = Customuser.objects.all()
+#     serializer_class = UserSerializer
 
-    def perform_create(self, serializer):
-        user = serializer.save()
-        random_password = ''.join(random.choices(string.digits, k=6))
-        user.set_password(random_password)
-        user.save()
-        send_mail(
-            'Welcome!',
-            'Thank you for registering.Your password is:'+random_password,
-            settings.EMAIL_HOST_USER,
-            [user.email],
-            fail_silently=False,
-        )
+#     def perform_create(self, serializer):
+#         user = serializer.save()
+#         random_password = ''.join(random.choices(string.digits, k=6))
+#         user.set_password(random_password)
+#         user.save()
+#         send_mail(
+#             'Welcome!',
+#             'Thank you for registering.Your password is:'+random_password,
+#             settings.EMAIL_HOST_USER,
+#             [user.email],
+#             fail_silently=False,
+#         )
+@api_view(['POST'])
+def Client(request):
+    if request.method == 'POST':
+        customuser_serializer = UserSerializer(data=request.data)
+        if customuser_serializer.is_valid():
+            customuser_instance = customuser_serializer.save()
+            
+            # Assuming you want to create a Usermember instance upon registration
+            usermember_data = {
+                'user': customuser_instance.id,
+                'is_approve': False  # Default value as per your model
+            }
+            usermember_serializer = UsermemberSerializer(data=usermember_data)
+            if usermember_serializer.is_valid():
+                usermember_serializer.save()
+            
+            return Response(customuser_serializer.data, status=status.HTTP_201_CREATED)
+        return Response(customuser_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
     
@@ -67,3 +87,12 @@ def add_product(request):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+@api_view(['GET'])
+def unapproved_users(request):
+    if request.method == 'GET':
+        unapproved_users = Usermember.objects.filter(is_approve=False)
+       
+        serializer = UsermemberSerializer(unapproved_users, many=True)
+        print("Unapproved Users QuerySet:", unapproved_users)
+        return Response(serializer.data)
+    

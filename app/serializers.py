@@ -1,5 +1,6 @@
 from .models import Customuser
 from .models import Product
+from .models import Usermember
 
 from rest_framework import serializers
 
@@ -22,7 +23,7 @@ class UserSerializer(serializers.ModelSerializer):
         if Customuser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists")
         return value
-        
+
 
   
 
@@ -42,4 +43,15 @@ class ProductSerializer(serializers.ModelSerializer):
             
     #     )
     #     return pro
+class UsermemberSerializer(serializers.ModelSerializer):
+    # class Meta:
+    #     model = Usermember
+    #     fields = '__all__'
+    username = serializers.CharField(source='user.username', read_only=True)
+    email = serializers.CharField(source='user.email', read_only=True)
+
+
+    class Meta:
+        model = Usermember
+        fields = ['id', 'user', 'is_approve', 'username','email'] 
 

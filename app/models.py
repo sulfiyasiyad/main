@@ -17,6 +17,11 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+class Usermember(models.Model):
+    user=models.ForeignKey(Customuser,on_delete=models.CASCADE,null=True)
+    is_approve=models.BooleanField(default=False)
+    def __str__(self):
+        return f"{self.user.username} - Approved: {self.is_approve}"
 
 
 
