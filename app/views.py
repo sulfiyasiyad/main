@@ -21,6 +21,18 @@ from .models import Usermember
 from .serializers import ProductSerializer
 from django.db.utils import IntegrityError
 from .serializers import  UsermemberSerializer
+from django.utils.crypto import get_random_string
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth import authenticate, login
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.decorators import login_required
+
+
 
 # class Client(viewsets.ModelViewSet):
 #     queryset = Customuser.objects.all()
@@ -59,20 +71,17 @@ def Client(request):
 
 
     
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-
-        user = Customuser.objects.get(username=username)
-        if user.check_password(password):
-            refresh = RefreshToken.for_user(user)
-            return Response({
-               'sucess'
-            })
-
-        else:
-            return Response({'error': 'Invalid credentials'}, status=400)
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_view(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return JsonResponse({'user_type': user.user_type}, status=200)
+    else:
+        return JsonResponse({'error': 'Invalid credentials'}, status=400)
 @api_view(['POST'])
 def add_product(request):
     if request.method == 'POST':
@@ -95,4 +104,45 @@ def unapproved_users(request):
         serializer = UsermemberSerializer(unapproved_users, many=True)
         print("Unapproved Users QuerySet:", unapproved_users)
         return Response(serializer.data)
+@api_view(['PATCH'])
+def accept_user(request, pk):
+    try:
+        user_member = Usermember.objects.get(pk=pk)
+    except Usermember.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
     
+    user_member.is_approve = True
+    user_member.save()
+    random_password = get_random_string(length=6, allowed_chars='0123456789')
+    
+    # Update user's password
+    user = user_member.user
+    user.password = make_password(random_password)
+    user.save()
+    send_mail(
+            'Welcome!',
+            'Thank you for registering.Your password is:'+random_password,
+            settings.EMAIL_HOST_USER,
+            [user.email],
+            fail_silently=False,
+    )
+    return Response(status=status.HTTP_200_OK)
+
+
+
+
+@api_view(['DELETE'])
+def decline_user(request, pk):
+    try:
+        user_member = Usermember.objects.get(pk=pk)
+    except Usermember.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    user_member.user.delete()  # Delete the associated user
+    user_member.delete()  # Delete the user member
+    return Response(status=status.HTTP_204_NO_CONTENT)
+@login_required
+def get_username(request):
+    return Response({'username': request.user.username})
+
+
