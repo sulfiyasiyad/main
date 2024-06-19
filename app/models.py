@@ -22,6 +22,14 @@ class Usermember(models.Model):
     is_approve=models.BooleanField(default=False)
     def __str__(self):
         return f"{self.user.username} - Approved: {self.is_approve}"
+class Cart(models.Model):
+    user = models.ForeignKey(Customuser, on_delete=models.CASCADE)
+    products = models.ManyToManyField(Product, through='CartItem')
+
+class CartItem(models.Model):
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 
 
 

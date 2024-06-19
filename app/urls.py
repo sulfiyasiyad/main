@@ -10,6 +10,7 @@ from . import views
 router = DefaultRouter()
 # router.register(r'users', Client)
 router.register(r'products', ProductViewSet)
+# router.register(r'carts', CartViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
@@ -21,6 +22,13 @@ urlpatterns = [
     path('decline-user/<int:pk>/', views.decline_user, name='decline-user'),
     path('login/', views.login_view, name='login'),
     path('get_username/', views.get_username, name='get_username'),
+    # path('carts/get_user_cart/', CartViewSet.as_view({'get': 'get_user_cart'}), name='get_user_cart'),
+    # path('carts/<int:pk>/add_to_cart/', CartViewSet.as_view({'post': 'add_to_cart'}), name='add_to_cart'),
+    path('products/<int:pk>/add_to_cart/', ProductViewSet.as_view({'post': 'add_to_cart'}), name='product-add-to-cart'),
+    path('products/<int:pk>/remove_from_cart/', ProductViewSet.as_view({'post': 'remove_from_cart'}), name='product-remove-from-cart'),
+
+
+
   
     
 

@@ -16,7 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.decorators import api_view
-from .models import Product
+from .models import Product, Cart, CartItem
 from .models import Usermember
 from .serializers import ProductSerializer
 from django.db.utils import IntegrityError
@@ -31,6 +31,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import login_required
+from rest_framework.decorators import action
 
 
 
@@ -96,6 +97,22 @@ def add_product(request):
 class ProductViewSet(viewsets.ModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
+    @action(detail=True, methods=['post'])
+    def add_to_cart(self, request, pk=None):
+        product = self.get_object()
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        print(cart)
+        cart_product, created = CartItem.objects.get_or_create(cart=cart, product=product)
+
+        return Response({'message': 'Product added to cart successfully.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def remove_from_cart(self, request, pk=None):
+        product = self.get_object()
+        cart = Cart.objects.get(user=request.user)
+        CartItem.objects.filter(cart=cart, product=product).delete()
+
+        return Response({'message': 'Product removed from cart successfully.'}, status=status.HTTP_200_OK)
 @api_view(['GET'])
 def unapproved_users(request):
     if request.method == 'GET':
@@ -146,3 +163,28 @@ def get_username(request):
     return Response({'username': request.user.username})
 
 
+# class CartViewSet(viewsets.ModelViewSet):
+#     queryset = Cart.objects.all()
+#     serializer_class = CartSerializer
+
+#     @action(detail=False, methods=['get'])
+#     def get_user_cart(self, request):
+#         user = request.user
+#         cart, created = Cart.objects.get_or_create(user=user)
+#         serializer = self.get_serializer(cart)
+#         return Response(serializer.data)
+
+#     @action(detail=True, methods=['post'])
+#     def add_to_cart(self, request, pk=None):
+#         user = request.user
+#         cart, created = Cart.objects.get_or_create(user=user)
+#         product_id = request.data.get('product_id')
+#         quantity = request.data.get('quantity', 1)
+
+#         product = Product.objects.get(id=product_id)
+#         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+#         if not created:
+#             cart_item.quantity += int(quantity)
+#             cart_item.save()
+
+#         return Response({'status': 'product added to cart'})
