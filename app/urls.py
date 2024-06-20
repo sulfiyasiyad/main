@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import  add_product
-from.views import ProductViewSet
+from.views import ProductViewSet,CustomerHomeView,CartView,AddToCartView
 
 from .views import Client
 from . import views
@@ -24,8 +24,10 @@ urlpatterns = [
     path('get_username/', views.get_username, name='get_username'),
     # path('carts/get_user_cart/', CartViewSet.as_view({'get': 'get_user_cart'}), name='get_user_cart'),
     # path('carts/<int:pk>/add_to_cart/', CartViewSet.as_view({'post': 'add_to_cart'}), name='add_to_cart'),
-    path('products/<int:pk>/add_to_cart/', ProductViewSet.as_view({'post': 'add_to_cart'}), name='product-add-to-cart'),
-    path('products/<int:pk>/remove_from_cart/', ProductViewSet.as_view({'post': 'remove_from_cart'}), name='product-remove-from-cart'),
+    
+    path('customer/home/', CustomerHomeView.as_view(), name='customer_home'),
+    path('cart/', CartView.as_view(), name='cart'),
+     path('cart/add/', AddToCartView.as_view(), name='add_to_cart'),
 
 
 
