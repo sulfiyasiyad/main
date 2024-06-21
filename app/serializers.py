@@ -32,22 +32,9 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = '__all__'
-        # fields = ['id', 'name', 'price', 'description','specification','quantity']
-    # def create(self, validated_data):
-    #     pro= Product.objects.create_pro(
-    #         name=validated_data['name'],
-    #         price=validated_data['price'],
-    
-    #         description=validated_data['description'],
-    #         specification=validated_data['specification'],
-    #         quantity=validated_data['quantity'],
-            
-    #     )
-    #     return pro
+   
 class UsermemberSerializer(serializers.ModelSerializer):
-    # class Meta:
-    #     model = Usermember
-    #     fields = '__all__'
+   
     username = serializers.CharField(source='user.username', read_only=True)
     email = serializers.CharField(source='user.email', read_only=True)
 
@@ -66,4 +53,3 @@ class CartSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields = ['id', 'user', 'items']
-

@@ -13,13 +13,12 @@ from rest_framework import status
 from django.core.mail import send_mail
 import random
 from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+
 from rest_framework.decorators import api_view
-from .models import Product, Cart, CartItem
+
 from .models import Usermember
 from .serializers import ProductSerializer
-from django.db.utils import IntegrityError
+
 from .serializers import  UsermemberSerializer
 from django.utils.crypto import get_random_string
 from django.contrib.auth.hashers import make_password
@@ -29,31 +28,15 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from django.contrib.auth.decorators import login_required
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
-from .serializers import CartSerializer, CartItemSerializer
+
+from rest_framework import generics, permissions
 
 
 
 
-# class Client(viewsets.ModelViewSet):
-#     queryset = Customuser.objects.all()
-#     serializer_class = UserSerializer
 
-#     def perform_create(self, serializer):
-#         user = serializer.save()
-#         random_password = ''.join(random.choices(string.digits, k=6))
-#         user.set_password(random_password)
-#         user.save()
-#         send_mail(
-#             'Welcome!',
-#             'Thank you for registering.Your password is:'+random_password,
-#             settings.EMAIL_HOST_USER,
-#             [user.email],
-#             fail_silently=False,
-#         )
+
+
 @api_view(['POST'])
 def Client(request):
     if request.method == 'POST':
@@ -97,9 +80,7 @@ def add_product(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all()
-    serializer_class = ProductSerializer
+
    
 @api_view(['GET'])
 def unapproved_users(request):
@@ -133,9 +114,6 @@ def accept_user(request, pk):
     )
     return Response(status=status.HTTP_200_OK)
 
-
-
-
 @api_view(['DELETE'])
 def decline_user(request, pk):
     try:
@@ -146,68 +124,6 @@ def decline_user(request, pk):
     user_member.user.delete()  # Delete the associated user
     user_member.delete()  # Delete the user member
     return Response(status=status.HTTP_204_NO_CONTENT)
-@login_required
-def get_username(request):
-    return Response({'username': request.user.username})
 
 
-# class CartViewSet(viewsets.ModelViewSet):
-#     queryset = Cart.objects.all()
-#     serializer_class = CartSerializer
 
-#     @action(detail=False, methods=['get'])
-#     def get_user_cart(self, request):
-#         user = request.user
-#         cart, created = Cart.objects.get_or_create(user=user)
-#         serializer = self.get_serializer(cart)
-#         return Response(serializer.data)
-
-#     @action(detail=True, methods=['post'])
-#     def add_to_cart(self, request, pk=None):
-#         user = request.user
-#         cart, created = Cart.objects.get_or_create(user=user)
-#         product_id = request.data.get('product_id')
-#         quantity = request.data.get('quantity', 1)
-
-#         product = Product.objects.get(id=product_id)
-#         cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-#         if not created:
-#             cart_item.quantity += int(quantity)
-#             cart_item.save()
-
-#         return Response({'status': 'product added to cart'})
-class CustomerHomeView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        user = request.user
-        if user.is_customer:
-            return Response({"message": "Welcome to the customer home page!"})
-        else:
-            return Response({"error": "Unauthorized access"}, status=403)
-class CartView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        serializer = CartSerializer(cart)
-        return Response(serializer.data)
-class AddToCartView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        cart, created = Cart.objects.get_or_create(user=request.user)
-        product_id = request.data.get('product_id')
-        quantity = request.data.get('quantity', 1)
-
-        try:
-            product = Product.objects.get(id=product_id)
-        except Product.DoesNotExist:
-            return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
-
-        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
-        if not created:
-            cart_item.quantity += quantity
-        cart_item.save()
-
-        return Response({'message': 'Item added to cart'}, status=status.HTTP_200_OK)
