@@ -18,6 +18,7 @@ from rest_framework.decorators import api_view
 
 from .models import Usermember
 from .serializers import ProductSerializer
+from django.contrib.auth.decorators import login_required
 
 from .serializers import  UsermemberSerializer
 from django.utils.crypto import get_random_string
@@ -28,8 +29,12 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 
 from rest_framework.response import Response
-
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import generics, permissions
+from django.contrib.auth.models import User
+from .models import Product
+from rest_framework.views import APIView
+
 
 
 
@@ -64,11 +69,16 @@ def login_view(request):
     username = request.data.get('username')
     password = request.data.get('password')
     user = authenticate(request, username=username, password=password)
+    print(user)
     if user is not None:
         login(request, user)
         return JsonResponse({'user_type': user.user_type}, status=200)
     else:
         return JsonResponse({'error': 'Invalid credentials'}, status=400)
+
+
+
+
 @api_view(['POST'])
 def add_product(request):
     if request.method == 'POST':
@@ -124,6 +134,29 @@ def decline_user(request, pk):
     user_member.user.delete()  # Delete the associated user
     user_member.delete()  # Delete the user member
     return Response(status=status.HTTP_204_NO_CONTENT)
+# @api_view(['GET'])
+# def user_data_view(request):
+#     user = request.user
+#     print(user)
+#     return JsonResponse({'username': user.username, 'email': user.email}, status=200)
+api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def user_data_view(request):
+    user = request.user
+    print(user)
+    return JsonResponse({'error': 'sucess'}, status=200)
 
+# class ProductListView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def get(self, request):
+#         queryset = Product.objects.all()
+#         serializer = ProductSerializer(queryset, many=True)
+#         return Response(serializer.data)
+class ProductListView(APIView):
+    def get(self, request):
+        products = Product.objects.all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data)
 
 
