@@ -34,6 +34,9 @@ from rest_framework import generics, permissions
 from django.contrib.auth.models import User
 from .models import Product
 from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import CartSerializer
+from .models import Cart
 
 
 
@@ -154,9 +157,44 @@ def user_data_view(request):
 #         serializer = ProductSerializer(queryset, many=True)
 #         return Response(serializer.data)
 class ProductListView(APIView):
+    permission_classes = [AllowAny]
     def get(self, request):
         products = Product.objects.all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
+class LoginView(generics.GenericAPIView):
+    permission_classes = [AllowAny]
 
+    def post(self, request, *args, **kwargs):
+        username = request.data.get("username")
+        password = request.data.get("password")
+        user = Customuser.objects.filter(username=username).first()
+        if user and user.check_password(password):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'username': user.username,  # Include the username in the response
+            })
+        return Response({"error": "Invalid credentials"}, status=400)
+class CartViewSet(viewsets.ModelViewSet):
+    serializer_class = CartSerializer
+    print(serializer_class)
+    permission_classes = [AllowAny]
+    
+  
 
+    def get_queryset(self):
+        return Cart.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        cart_item, created = Cart.objects.get_or_create(
+            user=self.request.user,
+            product=serializer.validated_data['product'],
+            defaults={'quantity': serializer.validated_data['quantity']}
+        )
+        if not created:
+            cart_item.quantity += serializer.validated_data['quantity']
+            cart_item.save()
+        return Response(CartSerializer(cart_item).data)
+       

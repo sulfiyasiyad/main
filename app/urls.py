@@ -3,14 +3,17 @@ from rest_framework.routers import DefaultRouter
 from .views import  add_product
 
 
-from .views import Client
+from .views import Client, LoginView
 from . import views
 from .views import user_data_view
 from .views import ProductListView
+from .views import CartViewSet
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 
 router = DefaultRouter()
 # router.register(r'products', ProductListView, basename='product')
+router.register(r'cart', CartViewSet, basename='cart')
 
 
 urlpatterns = [
@@ -25,6 +28,11 @@ urlpatterns = [
     # path('userdata/', views.user_data_view, name='user_data'),
     path('userdata/', user_data_view, name='user-data'),
     path('products/', ProductListView.as_view(), name='product-list'),
+    path('signin/', LoginView.as_view(), name='signin'),
+    # path('cart/', CartViewSet.as_view({'post': 'create', 'get': 'list'}), name='cart'),
+    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+]
 
    
     
@@ -36,4 +44,3 @@ urlpatterns = [
     
    
 
-]

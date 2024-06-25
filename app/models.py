@@ -24,7 +24,8 @@ class Usermember(models.Model):
         return f"{self.user.username} - Approved: {self.is_approve}"
 class Cart(models.Model):
     user = models.ForeignKey(Customuser, on_delete=models.CASCADE)
-    products = models.ManyToManyField(Product, through='CartItem')
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    quantity = models.PositiveIntegerField(default=1)
 
 class CartItem(models.Model):
     cart = models.ForeignKey(Cart, on_delete=models.CASCADE)

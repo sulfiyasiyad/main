@@ -42,14 +42,9 @@ class UsermemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usermember
         fields = ['id', 'user', 'is_approve', 'username','email'] 
-class CartItemSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CartItem
-        fields = ['id', 'product', 'quantity', 'cart']
-
 class CartSerializer(serializers.ModelSerializer):
-    items = CartItemSerializer(many=True, read_only=True)
-
     class Meta:
         model = Cart
-        fields = ['id', 'user', 'items']
+        fields = ['id', 'user', 'product', 'quantity']
+        read_only_fields = ['user']
+        
