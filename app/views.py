@@ -26,7 +26,7 @@ from django.contrib.auth.hashers import make_password
 from django.contrib.auth import authenticate, login
 from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny,IsAdminUser,IsAuthenticated
 
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -37,6 +37,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import CartSerializer
 from .models import Cart
+from django.contrib.auth.models import AnonymousUser
 
 
 
@@ -180,7 +181,7 @@ class LoginView(generics.GenericAPIView):
 class CartViewSet(viewsets.ModelViewSet):
     serializer_class = CartSerializer
     print(serializer_class)
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated]
     
   
 
@@ -198,3 +199,27 @@ class CartViewSet(viewsets.ModelViewSet):
             cart_item.save()
         return Response(CartSerializer(cart_item).data)
        
+# class CartViewSet(viewsets.ModelViewSet):
+#     serializer_class = CartSerializer
+#     permission_classes = [IsAuthenticated]
+
+#     def get_queryset(self):
+#         if isinstance(self.request.user, AnonymousUser):
+#             return Cart.objects.none()  # Return an empty queryset for anonymous users
+#         return Cart.objects.filter(user=self.request.user)
+
+#     def perform_create(self, serializer):
+#         if isinstance(self.request.user, AnonymousUser):
+#             return Response({"error": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+
+#         cart_item, created = Cart.objects.get_or_create(
+#             user=self.request.user,
+#             product=serializer.validated_data['product'],
+#             defaults={'quantity': serializer.validated_data.get('quantity', 1)}
+#         )
+
+#         if not created:
+#             cart_item.quantity += serializer.validated_data.get('quantity', 1)
+#             cart_item.save()
+
+#         return Response(CartSerializer(cart_item).data)

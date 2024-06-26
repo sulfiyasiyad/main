@@ -8,7 +8,8 @@ from . import views
 from .views import user_data_view
 from .views import ProductListView
 from .views import CartViewSet
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt import views as jwt_views
+
 
 
 router = DefaultRouter()
@@ -30,9 +31,10 @@ urlpatterns = [
     path('products/', ProductListView.as_view(), name='product-list'),
     path('signin/', LoginView.as_view(), name='signin'),
     # path('cart/', CartViewSet.as_view({'post': 'create', 'get': 'list'}), name='cart'),
-    # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    # path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('token/',jwt_views.TokenObtainPairView.as_view(), name ='token_obtain_pair'),
+     path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name ='token_refresh')
 ]
+    
 
    
     
