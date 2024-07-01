@@ -7,6 +7,7 @@ from django.contrib.auth.models import AbstractUser
 class Customuser(AbstractUser):
     user_type=models.IntegerField(default=1)
     pancard = models.CharField(max_length=10, unique=True)
+    is_approve=models.BooleanField(default=False)
    
 class Product(models.Model):
     name = models.CharField(max_length=100)

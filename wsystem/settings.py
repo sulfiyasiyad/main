@@ -40,7 +40,8 @@ INSTALLED_APPS = [
     'app',
     'rest_framework',
     'corsheaders',
-    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
+  
 ]
 
 MIDDLEWARE = [
@@ -56,19 +57,18 @@ MIDDLEWARE = [
 CORS_ORIGIN_ALLOW_ALL = True
 
 REST_FRAMEWORK = {
-     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-        
-      
-      ],
-      'DEFAULT_PERMISSION_CLASSES': [
-      
-        # 'rest_framework.permissions.AllowAny',
+
+
+
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
        
-        
-       
-        
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        
+    ]
+    
     
 }
 from datetime import timedelta

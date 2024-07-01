@@ -7,19 +7,20 @@ from .views import Client, LoginView
 from . import views
 from .views import user_data_view
 from .views import ProductListView
-from .views import CartViewSet
+# from .views import CartViewSet
 from rest_framework_simplejwt import views as jwt_views
 
 
 
 router = DefaultRouter()
 # router.register(r'products', ProductListView, basename='product')
-router.register(r'cart', CartViewSet, basename='cart')
+# router.register(r'cart', CartViewSet, basename='cart')
 
 
 urlpatterns = [
     path('', include(router.urls)),
     # path('login/', LoginView.as_view(), name='login'),
+    
     path('add-product/', add_product, name='add_product'),
     path('users/', Client, name='Client'),
     path('unapproved-users/', views.unapproved_users, name='unapproved-users'),
@@ -30,9 +31,8 @@ urlpatterns = [
     path('userdata/', user_data_view, name='user-data'),
     path('products/', ProductListView.as_view(), name='product-list'),
     path('signin/', LoginView.as_view(), name='signin'),
-    # path('cart/', CartViewSet.as_view({'post': 'create', 'get': 'list'}), name='cart'),
-    path('token/',jwt_views.TokenObtainPairView.as_view(), name ='token_obtain_pair'),
-    path('token/refresh/', jwt_views.TokenRefreshView.as_view(), name ='token_refresh'),
+   
+    
     path('home/', views.HomeView.as_view(), name ='home'),
 ]
     

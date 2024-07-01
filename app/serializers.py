@@ -24,6 +24,10 @@ class UserSerializer(serializers.ModelSerializer):
         if Customuser.objects.filter(email=value).exists():
             raise serializers.ValidationError("Email already exists")
         return value
+class LoginSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Customuser
+        fields = ['username', 'password']
 
 
   
@@ -42,9 +46,9 @@ class UsermemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usermember
         fields = ['id', 'user', 'is_approve', 'username','email'] 
-class CartSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Cart
-        fields = ['id', 'user', 'product', 'quantity']
-        read_only_fields = ['user']
+# class CartSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Cart
+#         fields = ['id', 'user', 'product', 'quantity']
+#         read_only_fields = ['user']
         
