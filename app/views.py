@@ -2,9 +2,9 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import viewsets
-from .models import Customuser,Usermember
+from .models import Customuser,Usermember,CartItem
 from rest_framework import generics
-from .serializers import UserSerializer
+from .serializers import UserSerializer,CartItemSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 import string
@@ -79,17 +79,15 @@ def Client(request):
         return Response(serializer.errors)
 @api_view(['POST'])
 def login_view(request):
-    serializer=LoginSerializer(data=request.data)
-    if serializer.is_valid():
-        user=authenticate(username=request.data.get('username'),password=request.data.get('password'))
-        print(user)
-        if user:
-            token=Token.objects.get(user=user)
-            print(token.key)
-            return JsonResponse({'token':token.key})
+    username = request.data.get('username')
+    password = request.data.get('password')
+    user = authenticate(username=username, password=password)
+    if user is not None:
+        token, created = Token.objects.get_or_create(user=user)
+        print(token.key)
+        return JsonResponse({'token': token.key})
     else:
-        return Response(serializer.errors)
-
+        return Response({'error': 'Invalid credentials'}, status=400)
 
     
 # @api_view(['POST'])
@@ -199,21 +197,21 @@ class ProductListView(APIView):
         products = Product.objects.all()
         serializer = ProductSerializer(products, many=True)
         return Response(serializer.data)
-class LoginView(generics.GenericAPIView):
-    permission_classes = [AllowAny]
+# class LoginView(generics.GenericAPIView):
+#     permission_classes = [AllowAny]
 
-    def post(self, request, *args, **kwargs):
-        username = request.data.get("username")
-        password = request.data.get("password")
-        user = Customuser.objects.filter(username=username).first()
-        if user and user.check_password(password):
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-                'username': user.username,  # Include the username in the response
-            })
-        return Response({"error": "Invalid credentials"}, status=400)
+#     def post(self, request, *args, **kwargs):
+#         username = request.data.get("username")
+#         password = request.data.get("password")
+#         user = Customuser.objects.filter(username=username).first()
+#         if user and user.check_password(password):
+#             refresh = RefreshToken.for_user(user)
+#             return Response({
+#                 'refresh': str(refresh),
+#                 'access': str(refresh.access_token),
+#                 'username': user.username,  # Include the username in the response
+#             })
+#         return Response({"error": "Invalid credentials"}, status=400)
 # class CartViewSet(viewsets.ModelViewSet):
 #     serializer_class = CartSerializer
 #     print(serializer_class)
@@ -260,8 +258,76 @@ class LoginView(generics.GenericAPIView):
 
 #         return Response(CartSerializer(cart_item).data)
 class HomeView(APIView):
-     
-   permission_classes = (IsAuthenticated, )
-   def get(self, request):
-        content = {'message': 'Welcome to the JWT Authentication page using React Js and Django!'}
-        return Response(content)
+   
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user=request.user
+        print(user)
+        return Response({'message': 'Welcome to the Home Page!'})
+class AddToCartView(generics.GenericAPIView):
+    serializer_class = CartItemSerializer
+    permission_classes = [IsAuthenticated]
+ 
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        product_id = serializer.validated_data['product'].id
+        quantity = serializer.validated_data['quantity']
+        user = request.user
+        
+        # Check if the product already exists in the user's cart
+        try:
+            cart_item = Cart.objects.get(user=user, product_id=product_id)
+            cart_item.quantity += quantity
+            cart_item.save()
+        except Cart.DoesNotExist:
+            Cart.objects.create(user=user, product_id=product_id, quantity=quantity)
+
+        return Response({"status": "item added to cart"}, status=status.HTTP_201_CREATED)
+
+class ProductViewLogin(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        products = Product.objects.all()
+        serializer = ProductSerializer(products, many=True)
+        return Response(serializer.data) 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def add_to_cart(request, product_id):
+    try:
+        product = Product.objects.get(id=product_id)
+    except Product.DoesNotExist:
+        return Response({'error': 'Product not found'}, status=404)
+
+    user = request.user
+    cart, created = Cart.objects.get_or_create(user=user)
+    
+    cart_item, item_created = CartItem.objects.get_or_create(cart=cart, product=product)
+    if not item_created:
+        cart_item.quantity += 1
+        cart_item.save()
+    
+    return Response({'message': 'Product added to cart'}, status=200)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def view_cart(request):
+    try:
+        cart = Cart.objects.get(user=request.user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        serializer = CartItemSerializer(cart_items, many=True)
+        return Response(serializer.data)
+    except Cart.DoesNotExist:
+        return Response({'error': 'Cart not found'}, status=404)
+class LogoutView(APIView):
+    def post(self, request):
+        try:
+            token = request.auth
+            if token:
+                token.delete()
+            return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)

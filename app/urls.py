@@ -3,10 +3,10 @@ from rest_framework.routers import DefaultRouter
 from .views import  add_product
 
 
-from .views import Client, LoginView
+from .views import Client
 from . import views
 from .views import user_data_view
-from .views import ProductListView
+from .views import ProductListView,HomeView,ProductViewLogin
 # from .views import CartViewSet
 from rest_framework_simplejwt import views as jwt_views
 
@@ -30,10 +30,14 @@ urlpatterns = [
     # path('userdata/', views.user_data_view, name='user_data'),
     path('userdata/', user_data_view, name='user-data'),
     path('products/', ProductListView.as_view(), name='product-list'),
-    path('signin/', LoginView.as_view(), name='signin'),
+    # path('signin/', LoginView.as_view(), name='signin'),
+    # path('add/', AddToCartView.as_view(), name='add-to-cart'),
    
     
-    path('home/', views.HomeView.as_view(), name ='home'),
+    path('home/',HomeView.as_view(), name ='home'),
+    path('product/', ProductViewLogin.as_view(), name='product'),
+    path('add-to-cart/<int:product_id>/',views.add_to_cart, name='add-to-cart'),
+    path('view-cart/', views.view_cart, name='view-cart'),
 ]
     
 

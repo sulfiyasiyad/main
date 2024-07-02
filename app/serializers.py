@@ -46,9 +46,8 @@ class UsermemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usermember
         fields = ['id', 'user', 'is_approve', 'username','email'] 
-# class CartSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Cart
-#         fields = ['id', 'user', 'product', 'quantity']
-#         read_only_fields = ['user']
-        
+class CartItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Cart
+        fields  = ['product', 'quantity']
+ 
