@@ -2,9 +2,9 @@ from django.shortcuts import render
 
 # Create your views here.
 from rest_framework import viewsets
-from .models import Customuser,Usermember,CartItem
+from .models import Customuser,Usermember,CartItem,OrderItem
 from rest_framework import generics
-from .serializers import UserSerializer,CartItemSerializer
+from .serializers import UserSerializer,CartItemSerializer,OrderSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 import string
@@ -47,6 +47,7 @@ from rest_framework.authtoken.models import Token
 
 
 
+
 # @api_view(['POST'])
 # def Client(request):
 #     if request.method == 'POST':
@@ -77,6 +78,34 @@ def Client(request):
         return JsonResponse({'token':token.key})
     else:
         return Response(serializer.errors)
+
+@api_view(['POST'])
+def deliveryuser(request):
+    serializer=UserSerializer(data=request.data)
+    if serializer.is_valid():
+        user = serializer.save()
+        Usermember.objects.create(user=user)
+        token=Token.objects.create(user=user)
+        print(token.key)
+            
+        return JsonResponse({'token':token.key})
+    else:
+        return Response(serializer.errors)
+
+
+# @api_view(['POST'])
+# def login_view(request):
+#     username = request.data.get('username')
+#     password = request.data.get('password')
+#     user = authenticate(username=username, password=password)
+#     if user is not None:
+#         token, created = Token.objects.get_or_create(user=user)
+#         print(token.key)
+#         return JsonResponse({'token': token.key})
+#     else:
+#         return Response({'error': 'Invalid credentials'}, status=400)
+
+    
 @api_view(['POST'])
 def login_view(request):
     username = request.data.get('username')
@@ -84,25 +113,14 @@ def login_view(request):
     user = authenticate(username=username, password=password)
     if user is not None:
         token, created = Token.objects.get_or_create(user=user)
+        
+        # Fetch user_type from Customuser model
+        user_type = user.user_type
+
         print(token.key)
-        return JsonResponse({'token': token.key})
+        return JsonResponse({'token': token.key, 'user_type': user_type})
     else:
         return Response({'error': 'Invalid credentials'}, status=400)
-
-    
-# @api_view(['POST'])
-# @permission_classes([AllowAny])
-# def login_view(request):
-#     username = request.data.get('username')
-#     password = request.data.get('password')
-#     user = authenticate(request, username=username, password=password)
-#     print(user)
-#     if user is not None:
-#         login(request, user)
-#         return JsonResponse({'user_type': user.user_type}, status=200)
-#     else:
-#         return JsonResponse({'error': 'Invalid credentials'}, status=400)
-
 
 
 
@@ -131,6 +149,15 @@ def add_product(request):
    
 @api_view(['GET'])
 def unapproved_users(request):
+    if request.method == 'GET':
+        unapproved_users = Usermember.objects.filter(is_approve=False,user_type=2)
+        # unapproved_users = Customuser.objects.filter(is_approve=False)
+       
+        serializer =  UsermemberSerializer(unapproved_users, many=True)
+        print("Unapproved Users QuerySet:", unapproved_users)
+        return Response(serializer.data)
+@api_view(['GET'])
+def deliveryrequest_users(request):
     if request.method == 'GET':
         unapproved_users = Usermember.objects.filter(is_approve=False)
         # unapproved_users = Customuser.objects.filter(is_approve=False)
@@ -312,16 +339,59 @@ def add_to_cart(request, product_id):
         cart_item.save()
     
     return Response({'message': 'Product added to cart'}, status=200)
-@api_view(['GET'])
-@permission_classes([IsAuthenticated])
-def view_cart(request):
-    try:
-        cart = Cart.objects.get(user=request.user)
+# @api_view(['GET'])
+# @permission_classes([IsAuthenticated])
+# def view_cart(request):
+#     try:
+#         cart = Cart.objects.get(user=request.user)
+#         cart_items = CartItem.objects.filter(cart=cart)
+#         serializer = CartItemSerializer(cart_items, many=True)
+#         return Response(serializer.data)
+#     except Cart.DoesNotExist:
+#         return Response({'error': 'Cart not found'}, status=404)
+
+
+
+
+class CartView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        cart, created = Cart.objects.get_or_create(user=request.user)
         cart_items = CartItem.objects.filter(cart=cart)
-        serializer = CartItemSerializer(cart_items, many=True)
-        return Response(serializer.data)
-    except Cart.DoesNotExist:
-        return Response({'error': 'Cart not found'}, status=404)
+        items = [{
+            'id': item.id,
+            'product': {
+                'id': item.product.id,
+                'name': item.product.name,
+                'price': item.product.price
+            },
+            'quantity': item.quantity
+        } for item in cart_items]
+        print(items)
+        return Response(items, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        product_id = request.data.get('product_id')
+        action = request.data.get('action')
+        if not product_id or action not in ['add', 'remove']:
+            return Response({'error': 'Invalid data'}, status=status.HTTP_400_BAD_REQUEST)
+
+        product = Product.objects.get(id=product_id)
+        cart_item, created = CartItem.objects.get_or_create(cart=cart, product=product)
+
+        if action == 'add':
+            cart_item.quantity += 1
+        elif action == 'remove':
+            cart_item.quantity -= 1
+            if cart_item.quantity <= 0:
+                cart_item.delete()
+                return Response(status=status.HTTP_204_NO_CONTENT)
+
+        cart_item.save()
+        return Response(status=status.HTTP_200_OK)
+
 class LogoutView(APIView):
     def post(self, request):
         try:
@@ -331,3 +401,82 @@ class LogoutView(APIView):
             return Response({"message": "Successfully logged out."}, status=status.HTTP_200_OK)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+# class CheckoutView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         serializer = OrderSerializer(data=request.data)
+#         if serializer.is_valid():
+#             order = serializer.save(user=request.user)
+#             # Mark the cart items as ordered
+#             Cart.objects.filter(id__in=[item.id for item in order.cart.all()]).update(ordered=True)
+#             return Response({"message": "Order placed successfully!"})
+#         return Response(serializer.errors, status=400)
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user  # Assuming you want to fetch the currently logged-in user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
+# class CheckoutView(generics.CreateAPIView):
+#     permission_classes = [IsAuthenticated]
+#     serializer_class = OrderSerializer
+
+#     def create(self, request, *args, **kwargs):
+#         user = request.user
+#         cart_items = Cart.objects.filter(user=user)
+#         print(cart_items)
+#         total_price = sum(item.quantity * item.product.price for item in cart_items)
+#         print(total_price)
+
+#         order_data = {
+#             'user': user.id,
+#             'cart': cart_items,
+#             'total_price': total_price,
+#             'address': request.data.get('address'),
+#             'district': request.data.get('district'),
+#             'pin_code': request.data.get('pin_code'),
+#         }
+#         print(order_data)
+#         serializer = self.get_serializer(data=order_data)
+#         serializer.is_valid(raise_exception=True)
+#         self.perform_create(serializer)
+        
+#         # Clear the cart after successful order
+#         cart_items.delete()
+
+#         headers = self.get_success_headers(serializer.data)
+#         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+class CheckoutView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        cart_ids = request.data.get('cart', [])  # Ensure cart is a list of IDs
+        cart_items = Cart.objects.filter(id__in=cart_ids, user=user)
+
+        if not cart_items.exists():
+            return Response({"detail": "Cart is empty or contains invalid items."}, status=status.HTTP_400_BAD_REQUEST)
+
+        total_price = sum(item.quantity * item.product.price for item in cart_items)
+
+        order_data = {
+            'user': user.id,
+            'cart': cart_items,  # Pass the queryset of cart items
+            'total_price': total_price,
+            'address': request.data.get('address'),
+            'district': request.data.get('district'),
+            'pin_code': request.data.get('pin_code'),
+        }
+        serializer = self.get_serializer(data=order_data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        
+        # Clear the cart after successful order
+        cart_items.delete()
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)

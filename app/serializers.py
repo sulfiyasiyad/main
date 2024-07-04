@@ -1,6 +1,8 @@
 from .models import Customuser
 from .models import Product
 from .models import Usermember
+from .models import Orders
+from .models import OrderItem
 
 from rest_framework import serializers
 from .models import Cart, CartItem
@@ -27,7 +29,7 @@ class UserSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.ModelSerializer):
     class Meta:
         model = Customuser
-        fields = ['username', 'password']
+        fields = ['username', 'password','user_type']
 
 
   
@@ -50,4 +52,23 @@ class CartItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = Cart
         fields  = ['product', 'quantity']
- 
+# class OrderSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = Orders
+#         fields = ['id', 'user', 'cart', 'total_price', 'address', 'district', 'pin_code']
+class OrderSerializer(serializers.ModelSerializer):
+    cart = CartItemSerializer(many=True)  # Use CartSerializer for nested representation
+
+    class Meta:
+        model = Orders
+        fields = ['user', 'cart', 'total_price', 'address', 'district', 'pin_code']
+
+    def create(self, validated_data):
+        cart_data = validated_data.pop('cart')  # Extract cart data
+        order = Orders.objects.create(**validated_data)
+        
+        for item_data in cart_data:
+            # Create each Cart object associated with the order
+            Cart.objects.create(order=order, **item_data)
+        
+        return order
