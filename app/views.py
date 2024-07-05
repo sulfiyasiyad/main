@@ -39,6 +39,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import Cart
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authtoken.models import Token
+from django.shortcuts import get_object_or_404
+import uuid
+from datetime import datetime, timedelta
+from django.utils.html import strip_tags
+from django.template.loader import render_to_string
+
+
 
 
 
@@ -71,7 +78,8 @@ def Client(request):
     serializer=UserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        Usermember.objects.create(user=user)
+        usertype=request.data.get('user_type')
+        Usermember.objects.create(user=user,user_type=usertype)
         token=Token.objects.create(user=user)
         print(token.key)
             
@@ -84,7 +92,8 @@ def deliveryuser(request):
     serializer=UserSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
-        Usermember.objects.create(user=user)
+        usertype=request.data.get('user_type')
+        Usermember.objects.create(user=user,user_type=usertype)
         token=Token.objects.create(user=user)
         print(token.key)
             
@@ -159,7 +168,7 @@ def unapproved_users(request):
 @api_view(['GET'])
 def deliveryrequest_users(request):
     if request.method == 'GET':
-        unapproved_users = Usermember.objects.filter(is_approve=False)
+        unapproved_users = Usermember.objects.filter(is_approve=False,user_type=3)
         # unapproved_users = Customuser.objects.filter(is_approve=False)
        
         serializer =  UsermemberSerializer(unapproved_users, many=True)
@@ -199,6 +208,49 @@ def decline_user(request, pk):
     user_member.user.delete()  # Delete the associated user
     user_member.delete()  # Delete the user member
     return Response(status=status.HTTP_204_NO_CONTENT)
+@api_view(['POST'])
+def accept_deliveryuser(request, pk):
+    try:
+        user_member = Usermember.objects.get(pk=pk)
+    except Usermember.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+    user_member.is_approve = True
+    user_member.save()
+    random_password = get_random_string(length=6, allowed_chars='0123456789')
+    
+    # Update user's password
+    user = user_member.user
+    user.password = make_password(random_password)
+    user.save()
+    send_mail(
+            'Welcome!',
+            'Thank you for registering.Your password is:'+random_password,
+            settings.EMAIL_HOST_USER,
+            [user.email],
+            fail_silently=False,
+    )
+    return Response(status=status.HTTP_200_OK)
+# @api_view(['DELETE'])
+# def decline_deliveryuser(request, pk):
+#     try:
+#         user_member = Usermember.objects.get(pk=pk)
+#     except Usermember.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
+    
+#     user_member.user.delete()  # Delete the associated user
+#     user_member.delete()  # Delete the user member
+#     return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+@api_view(['POST'])
+def decline_deliveryuser(request, pk):
+    try:
+        user = Usermember.objects.get(id=pk)
+        user.delete()
+        return Response({'status': 'User rejected'}, status=status.HTTP_200_OK)
+    except Usermember.DoesNotExist:
+        return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 # @api_view(['GET'])
 # def user_data_view(request):
 #     user = request.user
@@ -449,34 +501,170 @@ class UserDetailView(APIView):
 
 #         headers = self.get_success_headers(serializer.data)
 #         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-class CheckoutView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = OrderSerializer
+# class CheckoutView(APIView):
+#     permission_classes = [IsAuthenticated]
 
-    def create(self, request, *args, **kwargs):
-        user = request.user
-        cart_ids = request.data.get('cart', [])  # Ensure cart is a list of IDs
-        cart_items = Cart.objects.filter(id__in=cart_ids, user=user)
-
-        if not cart_items.exists():
-            return Response({"detail": "Cart is empty or contains invalid items."}, status=status.HTTP_400_BAD_REQUEST)
-
-        total_price = sum(item.quantity * item.product.price for item in cart_items)
-
-        order_data = {
-            'user': user.id,
-            'cart': cart_items,  # Pass the queryset of cart items
-            'total_price': total_price,
-            'address': request.data.get('address'),
-            'district': request.data.get('district'),
-            'pin_code': request.data.get('pin_code'),
-        }
-        serializer = self.get_serializer(data=order_data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+#     def post(self, request):
+#         data = request.data
+#         user = request.user
+#         cart = get_object_or_404(Cart, user=user)
+#         cart_items = CartItem.objects.filter(cart=cart)
         
-        # Clear the cart after successful order
-        cart_items.delete()
+#         if not cart_items.exists():
+#             return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
 
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+#         total_price = sum(item.product.price * item.quantity for item in cart_items)
+        
+#         order = Order.objects.create(
+#             user=user,
+#             first_name=data.get('first_name'),
+#             last_name=data.get('last_name'),
+#             username=data.get('username'),
+#             email=data.get('email'),
+#             address=data.get('address'),
+#             country=data.get('country'),
+#             district=data.get('district'),
+#             pincode=data.get('pincode'),
+#             delivery_method= data.get('delivery_method'),
+#             total_price=total_price
+            
+#         )
+        
+#         order.cart_items.set(cart_items)
+#         cart_items.delete()  # Clear the cart after checkout
+
+#         return Response({'message': 'Order placed successfully', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+
+
+
+
+# class CheckoutView(APIView):
+#     permission_classes = [IsAuthenticated]
+
+#     def post(self, request):
+#         data = request.data
+#         user = request.user
+#         cart = get_object_or_404(Cart, user=user)
+#         cart_items = CartItem.objects.filter(cart=cart)
+        
+#         if not cart_items.exists():
+#             return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         total_price = sum(item.product.price * item.quantity for item in cart_items)
+#         tracking_id = uuid.uuid4().hex[:10].upper()  # Example: Generate a random 10-character tracking ID
+
+#         # Calculate estimated delivery date (example: 7 days from today)
+#         delivery_date = datetime.now() + timedelta(days=7)
+
+        
+#         order = Order.objects.create(
+#             user=user,
+#             first_name=data.get('first_name'),
+#             last_name=data.get('last_name'),
+#             username=data.get('username'),
+#             email=data.get('email'),
+#             address=data.get('address'),
+#             country=data.get('country'),
+#             district=data.get('district'),
+#             pincode=data.get('pincode'),
+#             delivery_method= data.get('delivery_method'),
+#             total_price=total_price
+            
+#         )
+        
+#         order.cart_items.set(cart_items)
+#           # Clear the cart after checkout
+#         subject = 'Order Confirmation and Tracking Information'
+#         message = (
+#                 f"Dear {order.first_name} {order.last_name},\n\n"
+#                 f"Thank you for your order. Your order ID is {order.id}.\n"
+#                 f"Tracking ID: {tracking_id}\n"
+#                 f"Estimated Delivery Date: {delivery_date.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+#                 f"Best regards,\n"
+#                 f"Your Company Name"
+#         )
+#         from_email = 'sulfiyacs16@gmail.com'  # Use your configured email here
+#         to_email = data.get('email')
+            
+#         send_mail(subject, message, from_email, [to_email])
+#         cart_items.delete()
+            
+#         return Response({'message': 'Order placed successfully', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+class CheckoutView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        data = request.data
+        user = request.user
+
+        # Fetch user's cart and cart items
+        cart = get_object_or_404(Cart, user=user)
+        cart_items = CartItem.objects.filter(cart=cart)
+        
+        if not cart_items.exists():
+            return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+
+        total_price = sum(item.product.price * item.quantity for item in cart_items)
+        
+        # Generate tracking ID
+        tracking_id = uuid.uuid4().hex[:10].upper()  # Example: Generate a random 10-character tracking ID
+
+        # Calculate estimated delivery date (example: 7 days from today)
+        delivery_date = datetime.now() + timedelta(days=7)
+
+        # Validate and create order using serializer
+        order_data = {
+            'first_name': data.get('first_name'),
+            'last_name': data.get('last_name'),
+            'username': data.get('username'),
+            'email': data.get('email'),
+            'address': data.get('address'),
+            'country': data.get('country'),
+            'district': data.get('district'),
+            'pincode': data.get('pincode'),
+            'delivery_method': data.get('delivery_method'),
+            'total_price': total_price,
+            'tracking_id': tracking_id,
+            'estimated_delivery_date': delivery_date
+        }
+
+        serializer = OrderSerializer(data=order_data)
+        if serializer.is_valid():
+            order = serializer.save(user=user)
+
+            # Create OrderItem instances
+            for item in cart_items:
+                OrderItem.objects.create(
+                    order=order,
+                    product=item.product,
+                    quantity=item.quantity,
+                    price=item.product.price * item.quantity
+                )
+
+            # Clear the cart after checkout
+            cart_items.delete()
+
+            # Gather ordered items details
+            ordered_items = "\n".join([f"{item.product.name} - Quantity: {item.quantity} - Price: {item.product.price * item.quantity}" for item in cart_items])
+            
+            # Send email to client with tracking ID and estimated delivery date
+            subject = 'Order Confirmation and Tracking Information'
+            message = (
+                f"Dear {order.first_name} {order.last_name},\n\n"
+                f"Thank you for your order. Your order ID is {order.id}.\n\n"
+                f"Ordered Items:\n{ordered_items}\n\n"
+                f"Total Price: {total_price}\n\n"
+                f"Tracking ID: {tracking_id}\n"
+                f"Estimated Delivery Date: {delivery_date.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+                f"Best regards,\n"
+                f"Your Company Name"
+            )
+            from_email = 'sulfiyacs16@gmail.com'  # Use your configured email here
+            to_email = data.get('email')
+            
+            send_mail(subject, message, from_email, [to_email])
+            
+            return Response({'message': 'Order placed successfully', 'order_id': order.id}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        

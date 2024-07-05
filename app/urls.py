@@ -28,6 +28,8 @@ urlpatterns = [
     path('unapproved-users/', views.unapproved_users, name='unapproved-users'),
     path('accept-user/<int:pk>/', views.accept_user, name='accept-user'),
     path('decline-user/<int:pk>/', views.decline_user, name='decline-user'),
+    path('accept_deliveryuser/<int:pk>/', views.accept_deliveryuser, name='accept-deliveryuser'),
+    path('decline_deliveryuser/<int:pk>/', views.decline_deliveryuser, name='decline-deliveryuser'),
     path('login/', views.login_view, name='login'),
     # path('userdata/', views.user_data_view, name='user_data'),
     path('userdata/', user_data_view, name='user-data'),
@@ -44,8 +46,9 @@ urlpatterns = [
     path('view-cart/', CartView.as_view(), name='view-cart'),
     # path('checkout/', views.checkout, name='checkout'),
     path('user/', UserDetailView.as_view(), name='user-detail'),
-    path('checkout/', CheckoutView.as_view(), name='checkout'),
+  
     path('deliveryrequest_users/', views.deliveryrequest_users, name='deliveryrequest_users'),
+    path('checkout/', CheckoutView.as_view(), name='checkout'),
 
 ]
    
